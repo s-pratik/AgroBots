@@ -1,0 +1,19 @@
+.feature-card {
+    transition: all 0.3s ease-in-out;
+  }
+  
+  /* Hover effect (Light Green) */
+  .feature-card:hover {
+    background-color: #d4edda !important; /* Light green */
+  }
+  
+  /* Active feature effect (Solid Green) */
+  .active-feature {
+    background-color: #198754 !important; /* Bootstrap success green */
+    color: white !important;
+  }
+  
+  .active-feature .feature-icon {
+    color: white !important;
+  }
+  

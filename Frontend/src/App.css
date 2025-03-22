@@ -1,0 +1,94 @@
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.feature-card {
+  transition: transform 0.3s ease-in-out, background-color 0.3s ease-in-out;
+}
+
+/* Hover effect */
+.feature-card:hover {
+  transform: scale(1.05);
+  background-color: #d4edda; /* Light Green */
+}
+
+/* Active (clicked) effect */
+.active-feature {
+  background-color: #28a745 !important; /* Bootstrap success green */
+  color: white !important;
+}
+
+/* Ensure the text and icon remain white when active */
+.active-feature .card-title {
+  color: white !important;
+}
+
+.active-feature .feature-icon {
+  color: white !important;
+}
+
+/* Icon Hover Effect */
+.feature-icon {
+  transition: color 0.3s ease-in-out;
+}
+
+.feature-card:hover .feature-icon {
+  color: #155724; /* Dark Green */
+}
+
+.feature-icon {
+  color: green; /* Change icon color to green */
+}
+
+.feature-card {
+  transition: all 0.3s ease-in-out;
+}
+
+/* Hover effect (Light Green) */
+.feature-card:hover {
+  background-color: #d4edda !important; /* Light green */
+}
+
+/* Active feature effect (Solid Green) */
+.active-feature {
+  background-color: #198754 !important; /* Bootstrap success green */
+  color: white !important;
+}
+
+.active-feature .feature-icon {
+  color: white !important;
+}
