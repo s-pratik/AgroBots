@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FarmBuddy</title>
+    <div class="feature-item">
+      <h3>AI Crop Recommendation</h3>
+      <p id="recommendedCrop">Loading...</p>
+    </div>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+        color: #333;
+      }
+
+      header {
+        background-color: #4caf50;
+        padding: 1rem;
+        color: white;
+        text-align: center;
+      }
+
+      nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .logo {
+        font-size: 1.5rem;
+        font-weight: bold;
+      }
+
+      .nav-links {
+        list-style: none;
+        display: flex;
+        gap: 1rem;
+      }
+
+      .nav-links a {
+        text-decoration: none;
+        color: white;
+        transition: color 0.3s;
+      }
+
+      .nav-links a:hover {
+        color: #d4f7d4;
+      }
+
+      .hero {
+        padding: 4rem 2rem;
+        text-align: center;
+        color: white;
+      }
+
+      #features,
+      #about,
+      #contact {
+        padding: 2rem;
+        background-color: white;
+        margin: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .feature-item {
+        margin-bottom: 1.5rem;
+        cursor: pointer;
+      }
+
+      .feature-content {
+        display: none;
+        margin-top: 1rem;
+      }
+
+      form {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      input,
+      textarea {
+        padding: 0.5rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+
+      button {
+        background-color: #4caf50;
+        color: white;
+        padding: 0.75rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background-color: #45a049;
+      }
+
+      footer {
+        background-color: #333;
+        color: white;
+        text-align: center;
+        padding: 1rem;
+      }
+
+      .dashboard {
+        background-color: #e0f7e9;
+        padding: 1rem;
+        margin: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .dashboard h2 {
+        color: #4caf50;
+      }
+
+      .dashboard p {
+        font-size: 1.1rem;
+      }
+
+      .error-message {
+        color: red;
+        font-weight: bold;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <nav>
+        <div class="logo">FarmBuddy</div>
+        <ul class="nav-links">
+          <li><a href="#home">Home</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#about">About</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <section id="home" class="hero">
+      <h1>Welcome to FarmBuddy</h1>
+      <p>Your Smart Farming Assistant</p>
+    </section>
+
+    <section id="features">
+      <h2>Features</h2>
+      <div class="feature-item" onclick="toggleFeature('soilMonitoring')">
+        <h3>Soil Monitoring</h3>
+        <div id="soilMonitoring" class="feature-content">
+          <p>Real-time soil moisture and humidity tracking:</p>
+          <p>Soil Moisture: <span id="soilMoisture">Loading...</span></p>
+          <p>Soil Humidity: <span id="soilHumidity">Loading...</span></p>
+          <p>Rain Drop Level: <span id="rainDrop">Loading...</span></p>
+          <p>Temperature: <span id="temperature">Loading...</span></p>
+          <p id="errorSoil" class="error-message"></p>
+        </div>
+      </div>
+      <div class="feature-item" onclick="toggleFeature('cropRecommendations')">
+        <h3>Crop Recommendations</h3>
+        <div id="cropRecommendations" class="feature-content">
+          <p>
+            AI-powered suggestions for the best crops to grow based on current
+            conditions.
+          </p>
+        </div>
+      </div>
+      <div class="feature-item" onclick="toggleFeature('wateringAlerts')">
+        <h3>Watering Alerts</h3>
+        <div id="wateringAlerts" class="feature-content">
+          <p>Notifications to water your plants based on soil data.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="dashboard">
+      <h2>FarmBuddy Dashboard</h2>
+      <p>
+        Soil Moisture Level: <span id="dashboardSoilMoisture">Loading...</span>
+      </p>
+      <p>
+        Soil Humidity Level: <span id="dashboardSoilHumidity">Loading...</span>
+      </p>
+      <p>Rain Drop Level: <span id="dashboardRainDrop">Loading...</span></p>
+      <p>
+        Temperature Level: <span id="dashboardTemperature">Loading...</span>
+      </p>
+      <p id="errorDashboard" class="error-message"></p>
+    </section>
+
+    <section id="about">
+      <h2>About FarmBuddy</h2>
+      <p>
+        FarmBuddy integrates IoT and AI to help farmers make data-driven
+        decisions for better crop yield and efficient resource management.
+      </p>
+    </section>
+
+    <section id="contact">
+      <h2>Contact Us</h2>
+      <form>
+        <input type="text" placeholder="Your Name" required />
+        <input type="email" placeholder="Your Email" required />
+        <textarea placeholder="Your Message" required></textarea>
+        <button type="submit">Send Message</button>
+      </form>
+    </section>
+
+    <footer>
+      <p>&copy; 2025 FarmBuddy. All rights reserved.</p>
+    </footer>
+
+    <!-- Firebase Initialization -->
+    <!-- Firebase Initialization -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+      import {
+        getDatabase,
+        ref,
+        onValue,
+      } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+      // Firebase Configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyCxv3SQYSeOKpWr4zptTWpaI89a4QRdq_s",
+        authDomain: "soilmoisture-3abe7.firebaseapp.com",
+        databaseURL: "https://soilmoisture-3abe7-default-rtdb.firebaseio.com",
+        projectId: "soilmoisture-3abe7",
+        storageBucket: "soilmoisture-3abe7.appspot.com",
+        messagingSenderId: "413335580678",
+        appId: "1:413335580678:web:41e4b495717d2ea8d31387",
+        measurementId: "G-W47J2XV3WR",
+      };
+
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const database = getDatabase(app);
+      const soilRef = ref(database, "SmartIrrigation");
+
+      // Function to fetch real-time sensor data
+      function fetchRealtimeData() {
+        onValue(
+          soilRef,
+          (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+              // Get the latest entry from Firebase
+              const latestData = Object.values(data).pop();
+
+              if (latestData) {
+                updateDashboard(latestData);
+                fetchCropRecommendation(latestData); // Fetch Crop Recommendation with sensor data
+              } else {
+                displayError("No latest data found.");
+              }
+            } else {
+              displayError("No data available in Firebase.");
+            }
+          },
+          (error) => {
+            console.error("Firebase Error:", error);
+            displayError("Failed to fetch data.");
+          }
+        );
+      }
+
+      // Function to update UI with sensor data
+      function updateDashboard(latestData) {
+        document.getElementById("soilMoisture").textContent =
+          latestData.SoilMoisture + "mm";
+        document.getElementById("rainDrop").textContent =
+          latestData.RainDrop + " mm";
+        document.getElementById("soilHumidity").textContent =
+          latestData.Humidity + "%";
+        document.getElementById("temperature").textContent =
+          latestData.Temperature + "°C";
+
+        document.getElementById("dashboardSoilMoisture").textContent =
+          latestData.SoilMoisture + "mm";
+        document.getElementById("dashboardRainDrop").textContent =
+          latestData.RainDrop + " mm";
+        document.getElementById("dashboardSoilHumidity").textContent =
+          latestData.Humidity + "%";
+        document.getElementById("dashboardTemperature").textContent =
+          latestData.Temperature + "°C";
+
+        document.getElementById("errorSoil").textContent = "";
+        document.getElementById("errorDashboard").textContent = "";
+      }
+
+      // Function to fetch crop recommendation from Flask API
+      function fetchCropRecommendation(retryCount = 3) {
+        fetch("http://127.0.0.1:5000/recommend_crop", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            SoilMoisture: 40,
+            Humidity: 65,
+            RainDrop: 12,
+            N: 50,
+            P: 30,
+            K: 40,
+            pH: 6.5,
+          }),
+        })
+          .then((response) => {
+            if (!response.ok) throw new Error("Network response was not ok");
+            return response.json();
+          })
+          .then((data) => {
+            document.getElementById(
+              "recommendedCrop"
+            ).textContent = `Recommended Crop: ${data.RecommendedCrops}`;
+          })
+          .catch((error) => {
+            console.error("Error fetching crop recommendation:", error);
+            document.getElementById("recommendedCrop").textContent =
+              "Error fetching data.";
+
+            if (retryCount > 0) {
+              console.warn(`Retrying... (${3 - retryCount + 1}/3)`);
+              setTimeout(() => fetchCropRecommendation(retryCount - 1), 2000);
+            }
+          });
+      }
+
+      // Function to display error messages
+      function displayError(message) {
+        document.getElementById("errorSoil").textContent = message;
+        document.getElementById("errorDashboard").textContent = message;
+      }
+
+      // Toggle visibility of UI elements
+      function toggleFeature(featureId) {
+        const feature = document.getElementById(featureId);
+        feature.style.display =
+          feature.style.display === "block" ? "none" : "block";
+      }
+
+      // Run functions when the page loads
+      document.addEventListener("DOMContentLoaded", () => {
+        fetchRealtimeData();
+      });
+
+      window.toggleFeature = toggleFeature;
+    </script>
+  </body>
+</html>
