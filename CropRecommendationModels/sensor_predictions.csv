@@ -1,1 +1,1 @@
-SoilMoisture,Humidity,RainDrop,Temperature,RecommendedCrop,Estimated_N,Estimated_P,Estimated_K,Estimated_pH
+SoilMoisture,Humidity,RainDrop,Temperature,N,P,K,pH,RecommendedCrop

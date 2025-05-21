@@ -1,90 +1,66 @@
-import requests
+import firebase_admin
+from firebase_admin import credentials, db
 import pandas as pd
 import numpy as np
+import joblib
 import time
-import os
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-import threading
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import LabelEncoder
 
-# Firebase URL (Ensure your Firebase Realtime Database is properly set up)
-FIREBASE_URL = (
-    "https://soilmoisture-3abe7-default-rtdb.firebaseio.com/SmartIrrigation.json"
-)
+# -------------------- Initialize Firebase --------------------
+firebase_cred_path = "C:/Users/ANKIT/Desktop/FarmBuddy/majorproject1-5d560-firebase-adminsdk-fbsvc-0d04c4a6cf.json"
 
-# Flask API URL
-CROP_API_URL = "http://127.0.0.1:5000/recommend_crop"
+try:
+    # Load Firebase credentials
+    cred = credentials.Certificate(firebase_cred_path)
+    # Initialize Firebase app
+    firebase_admin.initialize_app(
+        cred, {"databaseURL": "https://soilmoisture-3abe7-default-rtdb.firebaseio.com"}
+    )
+    print("✅ Firebase initialized successfully!")
+except Exception as e:
+    print(f"❌ Error initializing Firebase: {str(e)}")
+    exit()
 
-# Output CSV File
-CSV_FILE = "sensor_data.csv"
+# -------------------- Load Dataset & Train Model --------------------
+try:
+    df = pd.read_csv("crop_dataset.csv")
 
-# Maximum records to collect
-MAX_RECORDS = 2000
+    df.rename(
+        columns={
+            "Soil Moisture (%)": "SoilMoisture",
+            "Soil Humidity (%)": "Humidity",
+            "Rain Drop Level (mm)": "RainDrop",
+            "Temperature (Â°C)": "Temperature",
+            "Recommended Crop": "Crop",
+        },
+        inplace=True,
+    )
 
-# Initialize Flask app
-app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+    # Add columns for N, P, K, and pH (if not already present)
+    # These can be calculated or fetched from another source
+    df["N"] = np.random.randint(30, 120, size=len(df))  # Example data
+    df["P"] = np.random.randint(20, 80, size=len(df))  # Example data
+    df["K"] = np.random.randint(20, 100, size=len(df))  # Example data
+    df["pH"] = np.round(np.random.uniform(5.5, 7.5, size=len(df)), 1)  # Example data
 
+    # Use all 7 features for training
+    X = df[["SoilMoisture", "Humidity", "RainDrop", "Temperature", "N", "P", "K", "pH"]]
+    y = df["Crop"]
 
-# Crop recommendation logic
-def recommend_crop_logic(N, P, K, pH):
-    """
-    Logic to recommend crops based on NPK and pH values.
-    Replace this with your actual crop recommendation algorithm.
-    """
-    if pH < 6.0:
-        return "Rice"
-    elif 6.0 <= pH < 7.0:
-        return "Wheat"
-    else:
-        return "Corn"
+    label_encoder = LabelEncoder()
+    y_encoded = label_encoder.fit_transform(y)
 
-
-@app.route("/recommend_crop", methods=["POST"])
-def recommend_crop():
-    """
-    Endpoint to recommend crops based on NPK and pH values.
-    """
-    try:
-        # Get JSON data from the request
-        data = request.json
-        print(f"Received data: {data}")
-
-        # Extract NPK and pH values
-        N = data.get("N", 0)
-        P = data.get("P", 0)
-        K = data.get("K", 0)
-        pH = data.get("pH", 0)
-
-        # Validate input data
-        if not all(isinstance(val, (int, float)) for val in [N, P, K, pH]):
-            return (
-                jsonify({"error": "Invalid input data: NPK and pH must be numbers"}),
-                400,
-            )
-
-        # Get crop recommendation
-        recommended_crop = recommend_crop_logic(N, P, K, pH)
-        print(f"Recommended crop: {recommended_crop}")
-
-        # Return the result
-        return jsonify({"recommended_crop": recommended_crop})
-
-    except Exception as e:
-        print(f"Error in /recommend_crop: {e}")
-        return jsonify({"error": "An internal server error occurred"}), 500
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    model.fit(X, y_encoded)
+    print("✅ Model trained successfully with 7 features!")
+except Exception as e:
+    print(f"❌ Error loading dataset or training model: {str(e)}")
+    exit()
 
 
-@app.route("/", methods=["GET"])
-def home():
-    """
-    Home endpoint to check if the server is running.
-    """
-    return jsonify({"message": "FarmBuddy Crop Recommendation API is running!"})
-
-
+# -------------------- Function to Calculate NPK & pH --------------------
 def calculate_npk_ph(moisture, humidity, rain, temperature):
-    """Estimate NPK and pH values based on sensor data."""
     leaching_risk = (moisture / 100) + (humidity / 100) + rain
     acidity_proxy = (temperature * humidity) / 1000
 
@@ -104,113 +80,110 @@ def calculate_npk_ph(moisture, humidity, rain, temperature):
     else:
         pH = np.round(np.random.uniform(6.3, 6.7), 1)
 
-    return N, P, K, pH
+    return {"N": N, "P": P, "K": K, "pH": pH}
 
 
-def fetch_data():
-    """Fetch latest sensor data from Firebase"""
+# -------------------- Fetch Latest Data from Firebase --------------------
+def get_latest_data():
     try:
-        response = requests.get(FIREBASE_URL)
-        response.raise_for_status()
-        data = response.json()
+        ref = db.reference("SmartIrrigation")
+        data = ref.get()
 
-        if not data:
-            print("❌ No data found in Firebase")
+        if data:
+            return list(data.values())[-1]  # Fetch last entry
+        else:
+            print("⚠️ No data found in Firebase.")
             return None
-
-        latest_entry = list(data.values())[-1]
-        return latest_entry
-
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Error fetching data: {e}")
+    except Exception as e:
+        print(f"❌ Error fetching data from Firebase: {str(e)}")
         return None
 
 
-def get_crop_recommendation(N, P, K, pH):
-    """Send NPK & pH data to Flask API and get crop recommendation"""
+# -------------------- Continuous Data Collection --------------------
+csv_filename = "sensor_predictions.csv"
+data_count = 0
+
+# Initialize CSV file with headers
+columns = [
+    "SoilMoisture",
+    "Humidity",
+    "RainDrop",
+    "Temperature",
+    "N",
+    "P",
+    "K",
+    "pH",
+    "RecommendedCrop",
+]
+pd.DataFrame(columns=columns).to_csv(csv_filename, index=False)
+
+print("\n🚀 Starting Data Collection... (Press CTRL+C to stop)")
+
+while data_count < 1000:
     try:
-        payload = {"N": N, "P": P, "K": K, "pH": pH}
-        response = requests.post(CROP_API_URL, json=payload)
-        response.raise_for_status()
-        return response.json().get("recommended_crop", "Unknown")
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Crop Recommendation Error: {e}")
-        return "Unknown"
+        latest_data = get_latest_data()
 
-
-def save_to_csv():
-    """Continuously fetch data, compute NPK & pH, get crop recommendation, and save to CSV"""
-    print("\n🚀 Starting Data Collection... (Press CTRL+C to stop)\n")
-
-    # Create CSV file if it doesn't exist
-    if not os.path.exists(CSV_FILE):
-        pd.DataFrame(
-            columns=[
-                "SoilMoisture",
-                "Humidity",
-                "RainDrop",
-                "Temperature",
-                "N",
-                "P",
-                "K",
-                "pH",
-                "RecommendedCrop",
-            ]
-        ).to_csv(CSV_FILE, index=False)
-
-    # Load existing data
-    df = pd.read_csv(CSV_FILE)
-
-    while len(df) < MAX_RECORDS:
-        data = fetch_data()
-        if data:
+        if latest_data:
             # Extract sensor values
-            soil_moisture = float(data.get("SoilMoisture", 0))
-            humidity = float(data.get("Humidity", 0))
-            rain_drop = float(data.get("RainDrop", 0))
-            temperature = float(data.get("Temperature", 0))
+            soil_moisture = float(latest_data.get("SoilMoisture", 0))
+            humidity = float(latest_data.get("Humidity", 0))
+            rain = float(latest_data.get("RainDrop", 0))
+            temperature = float(latest_data.get("Temperature", 0))
 
-            # Calculate NPK & pH
-            N, P, K, pH = calculate_npk_ph(
-                soil_moisture, humidity, rain_drop, temperature
-            )
+            # Calculate NPK & pH values
+            npk_ph = calculate_npk_ph(soil_moisture, humidity, rain, temperature)
 
-            # Get crop recommendation
-            recommended_crop = get_crop_recommendation(N, P, K, pH)
-
-            # Append new data
-            new_data = pd.DataFrame(
+            # Prepare input for model (all 7 features)
+            input_features = [
                 [
-                    {
-                        "SoilMoisture": soil_moisture,
-                        "Humidity": humidity,
-                        "RainDrop": rain_drop,
-                        "Temperature": temperature,
-                        "N": N,
-                        "P": P,
-                        "K": K,
-                        "pH": pH,
-                        "RecommendedCrop": recommended_crop,
-                    }
+                    soil_moisture,
+                    humidity,
+                    rain,
+                    temperature,
+                    npk_ph["N"],
+                    npk_ph["P"],
+                    npk_ph["K"],
+                    npk_ph["pH"],
                 ]
+            ]
+
+            # Predict crop
+            predicted_label = model.predict(input_features)[0]
+            predicted_crop = label_encoder.inverse_transform([predicted_label])[0]
+
+            # Store results
+            result = {
+                "SoilMoisture": soil_moisture,
+                "Humidity": humidity,
+                "RainDrop": rain,
+                "Temperature": temperature,
+                "N": npk_ph["N"],
+                "P": npk_ph["P"],
+                "K": npk_ph["K"],
+                "pH": npk_ph["pH"],
+                "RecommendedCrop": predicted_crop,
+            }
+
+            # Append to CSV
+            pd.DataFrame([result]).to_csv(
+                csv_filename, mode="a", header=False, index=False
             )
+            data_count += 1
 
-            df = pd.concat([df, new_data], ignore_index=True)
-            df.to_csv(CSV_FILE, index=False)
-            print(f"✅ Data Saved! Count: {len(df)} | Crop: {recommended_crop}")
+            # Print live update
+            print(f"✅ {data_count}/1000 Data Captured: {result}")
 
-        time.sleep(5)
+        else:
+            print("⚠️ No new data found in Firebase. Retrying...")
 
-    print("\n🎉 Data Collection Complete! 2000 Records Stored in sensor_data.csv 🎉")
+        time.sleep(5)  # Fetch new data every 5 seconds
 
+    except KeyboardInterrupt:
+        print("\n⏹️ Data collection stopped by user.")
+        break
 
-if __name__ == "__main__":
-    # Start the Flask app in a separate thread
-    flask_thread = threading.Thread(
-        target=lambda: app.run(debug=True, port=5000, use_reloader=False)
-    )
-    flask_thread.daemon = True
-    flask_thread.start()
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        time.sleep(5)  # Retry after 5 seconds
 
-    # Start the data collection process
-    save_to_csv()
+print("\n🎉 Data Collection Complete! Results saved in 'sensor_predictions.csv'")

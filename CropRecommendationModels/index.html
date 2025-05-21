@@ -278,7 +278,7 @@
       // Function to update UI with sensor data
       function updateDashboard(latestData) {
         document.getElementById("soilMoisture").textContent =
-          latestData.SoilMoisture + "mm";
+          (latestData.SoilMoisture)/10 + "mm";
         document.getElementById("rainDrop").textContent =
           latestData.RainDrop + " mm";
         document.getElementById("soilHumidity").textContent =
@@ -301,7 +301,7 @@
 
       // Function to fetch crop recommendation from Flask API
       function fetchCropRecommendation(retryCount = 3) {
-        fetch("http://127.0.0.1:5000/recommend_crop", {
+        fetch("http://127.0.0.1:5001/recommend_crop", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
